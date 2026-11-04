@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
+  <meta name="theme-color" content="#07130d" />
+  <title>Ruckus Rugby — Build. Design. Dominate.</title>
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+  <link rel="apple-touch-icon" href="./favicon.svg" />
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <canvas id="game" aria-hidden="true"></canvas>
+  <div class="screen-grain" aria-hidden="true"></div>
+  <div class="screen-vignette" aria-hidden="true"></div>
+
+  <!-- ===================== IN-GAME HUD ===================== -->
+  <div id="hud" class="hud hidden">
+    <div class="hud-top">
+      <div class="scoreboard">
+        <div class="sb-team home">
+          <span class="sb-crest" id="sb-crest-home">R</span>
+          <span class="sb-name" id="sb-name-home">RUCKUS</span>
+        </div>
+        <div class="sb-mid">
+          <div class="sb-score"><span id="score-home">0</span><span class="sb-dash">–</span><span id="score-away">0</span></div>
+          <div class="sb-clock"><span id="clock">00:00</span><span id="half-label">1ST HALF</span></div>
+        </div>
+        <div class="sb-team away">
+          <span class="sb-name" id="sb-name-away">RIVALS</span>
+          <span class="sb-crest" id="sb-crest-away">R</span>
+        </div>
+      </div>
+      <div id="commentary" class="commentary"></div>
+    </div>
+
+    <div class="hud-left">
+      <div class="player-card" id="player-card">
+        <div class="pc-number" id="pc-number">10</div>
+        <div class="pc-body">
+          <div class="pc-top"><span id="pc-name">Fly Half</span><span id="pc-pos">FLY-HALF</span></div>
+          <div class="pc-stam"><i id="pc-stam-fill"></i></div>
+          <div class="pc-meta"><span id="pc-trait">Playmaker</span><span id="pc-controlled">YOU</span></div>
+        </div>
+      </div>
+      <div id="possession-pill" class="possession-pill">POSSESSION</div>
+    </div>
+
+    <div class="hud-right">
+      <div class="tactic-bar" id="tactic-bar"></div>
+      <div class="hint" id="hint">WASD move · J pass · K kick · L tackle</div>
+    </div>
+
+    <div id="ruck-widget" class="context-widget hidden">
+      <div class="cw-label" id="ruck-label">RUCK</div>
+      <div class="ruck-track"><div class="ruck-center"></div><i id="ruck-marker"></i><i id="ruck-fill"></i></div>
+      <div class="cw-sub" id="ruck-sub">TAP TACKLE TO CONTEST</div>
+    </div>
+
+    <div id="kick-widget" class="context-widget hidden">
+      <div class="cw-label">KICK POWER</div>
+      <div class="power-track"><i id="power-fill"></i><span id="power-zone"></span></div>
+      <div class="cw-sub" id="kick-sub">RELEASE TO KICK</div>
+    </div>
+
+    <div id="play-banner" class="play-banner hidden"><span id="play-banner-name">WIDE SWEEP</span><small>SET PLAY</small></div>
+
+    <div id="toast-layer" class="toast-layer"></div>
+
+    <div class="mobile-actions" id="mobile-hint">
+      <button id="btn-pause" class="mini-btn" title="Pause">II</button>
+    </div>
+  </div>
+
+  <!-- ===================== TOUCH CONTROLS ===================== -->
+  <div id="touch" class="touch hidden">
+    <div class="stick-zone" id="stick-zone">
+      <div class="stick-base"><div class="stick-knob" id="stick-knob"></div></div>
+    </div>
+    <div class="touch-actions">
+      <button class="tbtn tbtn-small" data-action="switch">SWITCH</button>
+      <button class="tbtn tbtn-small" data-action="sidestep">STEP</button>
+      <button class="tbtn tbtn-pass" data-action="pass">PASS</button>
+      <button class="tbtn tbtn-kick" data-action="kick">KICK</button>
+      <button class="tbtn tbtn-tackle" data-action="tackle">TACKLE</button>
+      <button class="tbtn tbtn-sprint" data-action="sprint">SPRINT</button>
+    </div>
+    <div class="touch-tactics" id="touch-tactics"></div>
+  </div>
+
+  <!-- ===================== MODAL OVERLAY ===================== -->
+  <div id="overlay" class="overlay hidden">
+    <div id="overlay-card" class="overlay-card"></div>
+  </div>
+
+  <!-- ===================== SCREENS ===================== -->
+  <main id="screens">
+    <!-- MENU -->
+    <section id="screen-menu" class="screen active">
+      <div class="menu-glow"></div>
+      <header class="topbar">
+        <div class="brand"><span class="brand-mark">R</span><span class="brand-text">RUCKUS <em>RUGBY</em></span></div>
+        <div class="topbar-actions">
+          <button class="icon-btn" id="sound-toggle" title="Toggle sound">♪</button>
+          <button class="icon-btn" id="fullscreen-btn" title="Fullscreen">⛶</button>
+        </div>
+      </header>
+
+      <div class="hero-grid">
+        <div class="hero-copy">
+          <div class="eyebrow"><i></i> 7-A-SIDE ARCADE RUGBY</div>
+          <h1 class="title">RUCKUS<br /><span>RUGBY</span></h1>
+          <p class="lede">Build your squad. Design your moves. Break the line.</p>
+          <div class="menu-actions">
+            <button class="btn btn-primary btn-xl" data-go="setup"><span>Quick Match</span><b>▶</b></button>
+            <button class="btn btn-ghost" data-go="squad">Squad Builder</button>
+            <button class="btn btn-ghost" data-go="playbook">Playbook</button>
+            <button class="btn btn-ghost" data-go="help">How to Play</button>
+            <button class="icon-btn icon-btn-settings" data-go="settings" title="Settings">⚙</button>
+          </div>
+          <div class="hero-tags">
+            <span>Kicking</span><span>Tackles</span><span>Custom Players</span><span>Set Plays</span>
+          </div>
+        </div>
+
+        <aside class="hero-side">
+          <div class="team-preview-card">
+            <div class="tpc-top"><span class="tpc-kit" id="menu-kit-chip"></span><span id="menu-team-name">RUCKUS RFC</span><span class="tpc-badge">YOUR CLUB</span></div>
+            <canvas id="menu-player-canvas" width="360" height="430"></canvas>
+            <div class="tpc-bottom">
+              <div><small>CAPTAIN</small><strong id="menu-captain">J. MBEKI</strong></div>
+              <div><small>STYLE</small><strong id="menu-style">BALANCED</strong></div>
+            </div>
+          </div>
+          <div class="tip-card">
+            <span class="tip-label">COACH'S NOTE</span>
+            <p id="menu-tip">Get to the breakdown first. A quick ruck wins the next ruck.</p>
+          </div>
+        </aside>
+      </div>
+
+      <footer class="menu-footer">
+        <span>© RUCKUS RUGBY <b>·</b> BUILD 1.0</span>
+        <span class="footer-keys"><kbd>WASD</kbd> MOVE <kbd>J</kbd> PASS <kbd>K</kbd> KICK <kbd>L</kbd> TACKLE</span>
+      </footer>
+    </section>
+
+    <!-- MATCH SETUP -->
+    <section id="screen-setup" class="screen">
+      <header class="pagebar">
+        <button class="back-btn" data-go="menu">←</button>
+        <div><span class="page-kicker">MATCH DAY</span><h2>Quick Match</h2></div>
+        <div class="pagebar-right"><span class="pill">7 v 7</span></div>
+      </header>
+
+      <div class="setup-wrap">
+        <div class="setup-team-row">
+          <div class="setup-team you">
+            <div class="st-kit" id="setup-kit-home"></div>
+            <small>YOUR CLUB</small>
+            <h3 id="setup-name-home">Ruckus RFC</h3>
+            <div class="st-rating">OVR <b id="setup-rating-home">78</b></div>
+            <div class="st-stars" id="setup-stars-home"></div>
+          </div>
+          <div class="vs-badge">VS</div>
+          <div class="setup-team rival">
+            <div class="st-kit" id="setup-kit-away"></div>
+            <small>CHALLENGER</small>
+            <h3 id="setup-name-away">Northern Bulls</h3>
+            <div class="st-rating">OVR <b id="setup-rating-away">76</b></div>
+            <div class="st-stars" id="setup-stars-away"></div>
+          </div>
+        </div>
+
+        <div class="setup-panel">
+          <div class="field-group">
+            <label>CHOOSE YOUR OPPONENT</label>
+            <div class="opponent-grid" id="opponent-grid"></div>
+          </div>
+          <div class="setup-options">
+            <div class="field-group">
+              <label>HALF LENGTH</label>
+              <div class="segmented" id="half-seg">
+                <button data-half="90">1:30</button>
+                <button data-half="180" class="active">3:00</button>
+                <button data-half="300">5:00</button>
+              </div>
+            </div>
+            <div class="field-group">
+              <label>DIFFICULTY</label>
+              <div class="segmented" id="diff-seg">
+                <button data-diff="easy">Rookie</button>
+                <button data-diff="normal" class="active">Pro</button>
+                <button data-diff="hard">Elite</button>
+              </div>
+            </div>
+            <div class="field-group">
+              <label>WEATHER</label>
+              <div class="segmented" id="weather-seg">
+                <button data-weather="clear" class="active">Clear</button>
+                <button data-weather="rain">Rain</button>
+                <button data-weather="night">Night</button>
+              </div>
+            </div>
+          </div>
+          <div class="setup-summary" id="setup-summary">3 minute halves · Pro · Clear</div>
+          <button class="btn btn-primary btn-xl btn-block" id="start-match-btn">Kick Off <b>▶</b></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- SQUAD -->
+    <section id="screen-squad" class="screen">
+      <header class="pagebar">
+        <button class="back-btn" data-go="menu">←</button>
+        <div><span class="page-kicker">YOUR CLUB</span><h2>Squad Builder</h2></div>
+        <div class="pagebar-right">
+          <span class="pill" id="squad-budget-pill">CAPTAIN'S PICK</span>
+          <button class="btn btn-ghost btn-sm" id="reset-squad-btn">Reset</button>
+        </div>
+      </header>
+
+      <div class="squad-wrap">
+        <aside class="roster-panel">
+          <div class="roster-head"><span>MATCHDAY SQUAD</span><span id="squad-count">10 PLAYERS</span></div>
+          <div id="roster-list" class="roster-list"></div>
+          <div class="kit-panel">
+            <div class="panel-mini-title">CLUB IDENTITY</div>
+            <label class="inline-field">Club name <input id="team-name-input" maxlength="22" /></label>
+            <label class="inline-field">Abbreviation <input id="team-abbr-input" maxlength="4" /></label>
+            <label class="inline-field">Jersey pattern
+              <select id="team-pattern-select">
+                <option value="solid">Solid</option>
+                <option value="hoops">Hoops</option>
+                <option value="sash">Sash</option>
+                <option value="stripes">Stripes</option>
+                <option value="shoulders">Shoulders</option>
+              </select>
+            </label>
+            <div class="kit-colors">
+              <label>Jersey <input type="color" id="kit-primary" /></label>
+              <label>Trim <input type="color" id="kit-secondary" /></label>
+              <label>Shorts <input type="color" id="kit-shorts" /></label>
+              <label>Socks <input type="color" id="kit-socks" /></label>
+            </div>
+          </div>
+        </aside>
+
+        <section class="player-editor">
+          <div class="portrait-panel">
+            <canvas id="portrait-canvas" width="420" height="500"></canvas>
+            <div class="portrait-meta">
+              <span class="pos-chip" id="portrait-pos">FLY-HALF</span>
+              <h3 id="portrait-name">Jonah Mbeki</h3>
+              <div class="ovr-line"><span class="ovr-badge" id="portrait-ovr">82</span><span>OVERALL</span><span class="ovr-trait" id="portrait-trait">Playmaker</span></div>
+            </div>
+            <div class="portrait-arrows">
+              <button class="icon-btn" id="prev-player">◀</button>
+              <span id="player-index">4 / 10</span>
+              <button class="icon-btn" id="next-player">▶</button>
+            </div>
+          </div>
+
+          <div class="editor-controls">
+            <div class="editor-block">
+              <div class="block-title">IDENTITY</div>
+              <div class="two-col">
+                <label class="field"><span>Name</span><input id="edit-name" maxlength="18" /></label>
+                <label class="field"><span>Number</span><input id="edit-number" type="number" min="1" max="99" /></label>
+                <label class="field"><span>Position</span><select id="edit-position"></select></label>
+                <label class="field"><span>Trait</span><select id="edit-trait"></select></label>
+              </div>
+            </div>
+
+            <div class="editor-block">
+              <div class="block-title">APPEARANCE</div>
+              <div class="appearance-row">
+                <div class="appear-group">
+                  <span>Skin</span>
+                  <div class="swatch-row" id="skin-swatches"></div>
+                </div>
+                <div class="appear-group">
+                  <span>Hair</span>
+                  <div class="swatch-row" id="hair-swatches"></div>
+                </div>
+                <div class="appear-group">
+                  <span>Hair style</span>
+                  <select id="hair-style"></select>
+                </div>
+              </div>
+              <div class="appearance-row">
+                <div class="appear-group">
+                  <span>Build</span>
+                  <div class="segmented seg-small" id="build-seg">
+                    <button data-build="slim">Slim</button>
+                    <button data-build="athletic" class="active">Athletic</button>
+                    <button data-build="power">Power</button>
+                  </div>
+                </div>
+                <div class="appear-group">
+                  <span>Headgear</span>
+                  <div class="segmented seg-small" id="gear-seg">
+                    <button data-gear="none" class="active">None</button>
+                    <button data-gear="headband">Band</button>
+                    <button data-gear="scrumcap">Cap</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="editor-block">
+              <div class="block-title">ATTRIBUTES <span class="budget" id="stat-budget">0 PTS LEFT</span></div>
+              <div class="stat-list" id="stat-list"></div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <!-- PLAYBOOK -->
+    <section id="screen-playbook" class="screen">
+      <header class="pagebar">
+        <button class="back-btn" data-go="menu">←</button>
+        <div><span class="page-kicker">THE BLUEPRINT</span><h2>Playbook</h2></div>
+        <div class="pagebar-right"><span class="pill">TACTICS + SET PLAYS</span></div>
+      </header>
+
+      <div class="playbook-tabs">
+        <button class="tab active" data-tab="tactics">Team Tactics</button>
+        <button class="tab" data-tab="plays">Set Plays &amp; Moves</button>
+      </div>
+
+      <div id="tab-tactics" class="tab-panel">
+        <div class="tactics-grid">
+          <div class="tactics-col">
+            <div class="panel-title"><span>01</span>ATTACKING SHAPE</div>
+            <div id="attack-cards" class="preset-cards"></div>
+          </div>
+          <div class="tactics-col">
+            <div class="panel-title"><span>02</span>DEFENSIVE SYSTEM</div>
+            <div id="defense-cards" class="preset-cards"></div>
+          </div>
+          <aside class="tactics-side">
+            <div class="tactics-diagram">
+              <canvas id="tactics-canvas" width="520" height="340"></canvas>
+              <span class="diagram-label">LIVE SHAPE PREVIEW</span>
+            </div>
+            <div class="tactics-readout">
+              <div><small>WIDTH</small><b id="read-width">100%</b></div>
+              <div><small>DEPTH</small><b id="read-depth">100%</b></div>
+              <div><small>PASS RISK</small><b id="read-pass">50%</b></div>
+              <div><small>KICK BIAS</small><b id="read-kick">30%</b></div>
+            </div>
+            <p class="side-note" id="tactics-note">Balanced shape. Keep the ball alive and attack the space.</p>
+            <div class="equipped-mini">
+              <span>EQUIPPED MOVES</span>
+              <div id="equipped-mini-list"></div>
+            </div>
+            <button class="btn btn-primary btn-block" data-tab-jump="plays">Design a Set Play →</button>
+          </aside>
+        </div>
+      </div>
+
+      <div id="tab-plays" class="tab-panel hidden">
+        <div class="plays-layout">
+          <aside class="plays-list-panel">
+            <div class="panel-mini-title">YOUR PLAYBOOK <button class="text-btn" id="new-play-btn">+ NEW</button></div>
+            <div id="play-list" class="play-list"></div>
+            <div class="equip-panel">
+              <div class="panel-mini-title">MATCHDAY KEYS</div>
+              <div id="equip-slots" class="equip-slots"></div>
+            </div>
+          </aside>
+
+          <section class="play-editor-panel">
+            <div class="play-editor-head">
+              <input id="play-name" class="play-name-input" maxlength="26" value="UNTITLED MOVE" />
+              <div class="play-editor-actions">
+                <button class="btn btn-ghost btn-sm" id="duplicate-play">Duplicate</button>
+                <button class="btn btn-ghost btn-sm danger" id="delete-play">Delete</button>
+              </div>
+            </div>
+            <div class="play-canvas-wrap">
+              <canvas id="play-canvas" width="980" height="560"></canvas>
+              <div class="canvas-hint" id="canvas-hint">DRAG PLAYERS · CLICK PITCH TO ADD A RUN</div>
+            </div>
+            <div class="play-tools">
+              <div class="tool-group">
+                <span>SELECTED</span>
+                <b id="selected-player-label">#4 SCRUM-HALF</b>
+              </div>
+              <div class="tool-group">
+                <span>FIRST RECEIVER</span>
+                <select id="receiver-select"></select>
+              </div>
+              <button class="btn btn-ghost btn-sm" id="undo-point">Undo point</button>
+              <button class="btn btn-ghost btn-sm" id="clear-route">Clear run</button>
+              <button class="btn btn-ghost btn-sm" id="clear-play">Reset shape</button>
+            </div>
+            <div class="play-tip">Click a teammate, then click upfield to draw their run. Drag a teammate to reposition. The ball starts with you — the first receiver gets the automatic first pass.</div>
+          </section>
+        </div>
+      </div>
+    </section>
+
+    <!-- HELP -->
+    <section id="screen-help" class="screen">
+      <header class="pagebar">
+        <button class="back-btn" data-go="menu">←</button>
+        <div><span class="page-kicker">THE LAWS, SIMPLIFIED</span><h2>How to Play</h2></div>
+        <div class="pagebar-right"><span class="pill">ARCADE UNION</span></div>
+      </header>
+      <div class="help-wrap">
+        <div class="help-grid">
+          <div class="help-card">
+            <h3>Controls</h3>
+            <div class="keyrow"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>Move your player</span></div>
+            <div class="keyrow"><kbd>SHIFT</kbd><span>Sprint (burns stamina)</span></div>
+            <div class="keyrow"><kbd>J</kbd><span>Pass backwards to the best option</span></div>
+            <div class="keyrow"><kbd>K</kbd><span>Hold to charge a kick, release to boot</span></div>
+            <div class="keyrow"><kbd>L</kbd><span>Tackle (defence) / sidestep (carrying)</span></div>
+            <div class="keyrow"><kbd>E</kbd><span>Offload while being tackled</span></div>
+            <div class="keyrow"><kbd>Q</kbd><span>Switch defender</span></div>
+            <div class="keyrow"><kbd>1–4</kbd><span>Trigger an equipped set play</span></div>
+            <div class="keyrow"><kbd>ESC</kbd><span>Pause</span></div>
+          </div>
+          <div class="help-card">
+            <h3>Rugby, arcade style</h3>
+            <ul class="rules">
+              <li><b>Pass backwards.</b> A forward pass turns the ball over via scrum.</li>
+              <li><b>Kick with purpose.</b> Tap for a grubber, hold for a punt. Charging while moving slows you down.</li>
+              <li><b>Win the breakdown.</b> After a tackle, tap the tackle/pass key to win the ruck. Get bodies there first.</li>
+              <li><b>Time the sidestep.</b> Press L just before contact to slip a tackle — it costs stamina.</li>
+              <li><b>Chase kicks.</b> The ball carrier changes after a kick; the nearest chaser is yours.</li>
+              <li><b>Touch = lineout. Knock-on = scrum.</b> Win the timing bar to keep possession.</li>
+              <li><b>Score tries (5) and conversions (2).</b> Nail the conversion power zone.</li>
+            </ul>
+          </div>
+          <div class="help-card">
+            <h3>Set plays</h3>
+            <p>Open the <b>Playbook → Set Plays</b> tab. Pick a teammate, drag them into position, then click upfield to sketch their run. Assign a first receiver. In a match, hit <kbd>1</kbd>–<kbd>4</kbd> while carrying: your teammates explode onto their lines and the first receiver takes an automatic pass.</p>
+            <p class="muted">Equip up to four plays in the Matchday Keys panel. Plays are saved to your browser automatically.</p>
+          </div>
+          <div class="help-card">
+            <h3>Squad building</h3>
+            <p>Every player has six attributes and a trait. Spend the point budget across ten players — pace wins the outside, strength and tackling win the breakdown, handling keeps the ball alive.</p>
+            <p class="muted">Your club identity, squad, tactics and set plays persist locally. Reset the squad any time from the Squad Builder.</p>
+          </div>
+        </div>
+        <div class="help-footer"><button class="btn btn-primary" data-go="setup">Take the field →</button></div>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section id="screen-settings" class="screen">
+      <header class="pagebar">
+        <button class="back-btn" data-go="menu">←</button>
+        <div><span class="page-kicker">THE CLUBHOUSE</span><h2>Settings</h2></div>
+        <div class="pagebar-right"><span class="pill">LOCAL SAVE</span></div>
+      </header>
+      <div class="settings-wrap">
+        <div class="settings-card">
+          <div class="setting-row"><div><b>Sound</b><small>Crowd, whistle and impact effects</small></div><button class="switch on" id="set-sound"></button></div>
+          <div class="setting-row"><div><b>Commentary</b><small>Show the live commentary feed</small></div><button class="switch on" id="set-commentary"></button></div>
+          <div class="setting-row"><div><b>Screen shake</b><small>Impact and try celebrations</small></div><button class="switch on" id="set-shake"></button></div>
+          <div class="setting-row"><div><b>Reduced motion</b><small>Limits camera and UI animation</small></div><button class="switch" id="set-motion"></button></div>
+          <div class="setting-row"><div><b>Show controls</b><small>Display the controls hint in match</small></div><button class="switch on" id="set-hints"></button></div>
+          <div class="setting-row"><div><b>Difficulty default</b><small>Used for new quick matches</small></div>
+            <div class="segmented seg-small" id="default-diff">
+              <button data-diff="easy">Rookie</button><button data-diff="normal" class="active">Pro</button><button data-diff="hard">Elite</button>
+            </div>
+          </div>
+          <div class="setting-row"><div><b>Reset all data</b><small>Deletes your club, squad and playbook</small></div><button class="btn btn-ghost btn-sm danger" id="reset-all">Delete save</button></div>
+        </div>
+        <div class="settings-note">RUCKUS RUGBY stores everything locally on this device. No account. No downloads. Just rugby.</div>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
