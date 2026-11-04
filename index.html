@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#060813" />
+  <meta name="description" content="Dragon Ball Super: Ultra Clash - a fan-made arena fighter. Power up, transform through every Super Saiyan form, and battle eight legendary enemies." />
+  <title>Dragon Ball Super: Ultra Clash</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='46' fill='%23ff8a1f'/><path d='M50 12l9 22 24-6-15 20 18 16-25 1 2 25-13-21-22 12 9-23-23-10 25-4z' fill='%23ffe066'/></svg>" />
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div id="app">
+    <canvas id="game" aria-label="Dragon Ball Super Ultra Clash game arena"></canvas>
+    <div id="vignette" aria-hidden="true"></div>
+    <div id="flash" aria-hidden="true"></div>
+
+    <!-- ============================== HUD ============================== -->
+    <section id="hud" aria-label="Battle HUD">
+      <div class="enemy-hud">
+        <div class="enemy-meta">
+          <span id="enemy-stage">STAGE 1 · THE TYRANT</span>
+          <span id="enemy-power">POWER 120M</span>
+        </div>
+        <div class="enemy-name-row">
+          <strong id="enemy-name">FRIEZA</strong>
+          <span id="enemy-title">EMPEROR OF EVIL</span>
+        </div>
+        <div class="bar enemy-bar">
+          <div id="enemy-hp-ghost" class="bar-ghost"></div>
+          <div id="enemy-hp-fill" class="bar-fill"></div>
+          <div class="bar-shine"></div>
+        </div>
+      </div>
+
+      <div class="fight-info">
+        <span id="stage-label">STAGE 1 / 8</span>
+        <span class="dot">◆</span>
+        <span id="timer-label">0:00</span>
+      </div>
+
+      <div class="player-hud">
+        <div class="form-badge" id="form-badge">
+          <span id="form-abbr">BASE</span>
+          <small>FORM</small>
+        </div>
+        <div class="player-main">
+          <div class="player-top">
+            <strong>SON GOKU</strong>
+            <span id="form-name">BASE FORM</span>
+          </div>
+          <div class="bar hp">
+            <div id="player-hp-ghost" class="bar-ghost"></div>
+            <div id="player-hp-fill" class="bar-fill"></div>
+            <div class="bar-shine"></div>
+            <span class="bar-label">HP <b id="player-hp-text">1000</b></span>
+          </div>
+          <div class="bar ki">
+            <div id="player-ki-fill" class="bar-fill"></div>
+            <span class="bar-label">KI</span>
+          </div>
+          <div class="bar power">
+            <div id="player-power-fill" class="bar-fill"></div>
+            <span class="bar-label">POWER</span>
+          </div>
+          <div class="bar spirit">
+            <div id="player-spirit-fill" class="bar-fill"></div>
+            <span class="bar-label">SPIRIT</span>
+          </div>
+          <div class="player-foot">
+            <span>POWER LEVEL <b id="player-power-level">3.0M</b></span>
+            <span id="transform-hint">HOLD <kbd>E</kbd> · <kbd>Q</kbd> ASCEND</span>
+          </div>
+        </div>
+      </div>
+
+      <div id="combo">
+        <span id="combo-num">0</span>
+        <em>HIT<br />COMBO</em>
+      </div>
+
+      <div id="skillbar" aria-label="Techniques">
+        <button class="skill" data-skill="0" title="Solar Flare (1)">
+          <span class="skill-glyph">☀</span>
+          <span class="skill-name">SOLAR</span>
+          <span class="skill-key">1</span>
+          <span class="skill-cd"></span>
+          <span class="skill-cost">20</span>
+        </button>
+        <button class="skill" data-skill="1" title="Instant Transmission (2)">
+          <span class="skill-glyph">瞬</span>
+          <span class="skill-name">TELEPORT</span>
+          <span class="skill-key">2</span>
+          <span class="skill-cd"></span>
+          <span class="skill-cost">15</span>
+        </button>
+        <button class="skill locked" data-skill="2" title="Dragon Fist (3) - Super Saiyan">
+          <span class="skill-glyph">龍</span>
+          <span class="skill-name">DRAGON</span>
+          <span class="skill-key">3</span>
+          <span class="skill-cd"></span>
+          <span class="skill-cost">35</span>
+        </button>
+        <button class="skill locked" data-skill="3" title="Spirit Bomb (4) - Super Saiyan 2">
+          <span class="skill-glyph">✦</span>
+          <span class="skill-name">SPIRIT</span>
+          <span class="skill-key">4</span>
+          <span class="skill-cd"></span>
+          <span class="skill-cost">MAX</span>
+        </button>
+      </div>
+
+      <div id="combo-timer-wrap"><div id="combo-timer"></div></div>
+      <div id="hint-area">
+        <span class="desktop-hint"><kbd>A</kbd><kbd>D</kbd> MOVE · <kbd>W</kbd> JUMP · <kbd>S</kbd> GUARD<br /><kbd>J</kbd> STRIKE · <kbd>K</kbd> HEAVY · <kbd>L</kbd> KI · <kbd>U</kbd> BEAM<br /><kbd>SHIFT</kbd> DASH · <kbd>E</kbd> CHARGE · <kbd>Q</kbd> ASCEND · <kbd>1-4</kbd> SKILLS · <kbd>ESC</kbd> PAUSE</span>
+        <span class="touch-hint">HOLD POWER TO CHARGE · RELEASE THE BUTTONS TO UNLEASH</span>
+      </div>
+    </section>
+
+    <!-- ============================ TOUCH ============================= -->
+    <div id="touch-controls" aria-label="Touch controls">
+      <div id="stick-zone">
+        <div id="stick-ring"><div id="stick-knob"></div></div>
+        <small>MOVE · ↑ JUMP · ↓ GUARD</small>
+      </div>
+      <div id="action-pad">
+        <button class="tact" data-act="jump">JUMP</button>
+        <button class="tact" data-act="dash">DASH</button>
+        <button class="tact" data-act="power">POWER</button>
+        <button class="tact" data-act="ki">KI</button>
+        <button class="tact" data-act="beam">BEAM</button>
+        <button class="tact" data-act="heavy">HEAVY</button>
+        <button class="tact strike" data-act="strike">STRIKE</button>
+        <button class="tact pause" data-act="pause" aria-label="Pause">II</button>
+      </div>
+    </div>
+
+    <!-- =========================== SCREENS =========================== -->
+    <section id="screen-title" class="screen title-screen">
+      <div class="title-wrap">
+        <div class="kicker"><span></span> A FAN-MADE TRIBUTE <span></span></div>
+        <div class="logo">
+          <span class="logo-top">DRAGON BALL</span>
+          <span class="logo-super">SUPER</span>
+          <span class="logo-main">ULTRA CLASH</span>
+        </div>
+        <p class="tagline">POWER UP. BREAK YOUR LIMITS.</p>
+        <div class="title-actions">
+          <button id="btn-start" class="btn primary" aria-label="Start Game">START</button>
+          <button id="btn-help" class="btn ghost">HOW TO PLAY</button>
+        </div>
+        <div class="title-meta">
+          <span id="best-stage">BEST: NO RUN YET</span>
+          <span class="sep">◆</span>
+          <span>8 ENEMIES · 9 FORMS</span>
+          <button id="btn-sound" class="sound-btn" aria-label="Toggle sound">SOUND ON</button>
+        </div>
+      </div>
+      <div class="title-corner left"></div>
+      <div class="title-corner right"></div>
+    </section>
+
+    <section id="screen-help" class="screen panel-screen hidden">
+      <div class="panel help-panel">
+        <button class="close-btn" data-close="help" aria-label="Close">×</button>
+        <h2>HOW TO <em>FIGHT</em></h2>
+        <div class="help-grid">
+          <div class="help-col">
+            <h3>KEYBOARD</h3>
+            <ul class="key-list">
+              <li><span><kbd>A</kbd><kbd>D</kbd> / <kbd>←</kbd><kbd>→</kbd></span> Move</li>
+              <li><span><kbd>W</kbd> / <kbd>↑</kbd></span> Jump · double jump</li>
+              <li><span><kbd>S</kbd> / <kbd>↓</kbd></span> Guard</li>
+              <li><span><kbd>J</kbd></span> Light strike combo</li>
+              <li><span><kbd>K</kbd></span> Heavy strike</li>
+              <li><span><kbd>L</kbd></span> Ki blast</li>
+              <li><span><kbd>U</kbd> hold</span> Kamehameha</li>
+              <li><span><kbd>SHIFT</kbd></span> Dash / afterimage</li>
+              <li><span><kbd>E</kbd> hold</span> Charge power &amp; ki</li>
+              <li><span><kbd>Q</kbd></span> Ascend when POWER is full</li>
+              <li><span><kbd>1</kbd>–<kbd>4</kbd></span> Techniques</li>
+              <li><span><kbd>ESC</kbd> / <kbd>P</kbd></span> Pause</li>
+            </ul>
+          </div>
+          <div class="help-col">
+            <h3>TOUCH</h3>
+            <ul class="key-list touch-list">
+              <li><span>Joystick</span> Move · push up to jump · pull down to guard</li>
+              <li><span>STRIKE</span> Light combo</li>
+              <li><span>HEAVY</span> Heavy strike</li>
+              <li><span>KI</span> Ki blast</li>
+              <li><span>BEAM</span> Hold for a stronger Kamehameha</li>
+              <li><span>DASH</span> Dodge through attacks</li>
+              <li><span>POWER</span> Hold to charge; tap when full to ascend</li>
+              <li><span>SKILL ICONS</span> Tap to use techniques</li>
+              <li><span>II</span> Pause / controls</li>
+            </ul>
+            <h3>THE GOLDEN RULE</h3>
+            <p class="help-note">Hold <b>CHARGE</b> until the POWER bar is full, then hit <b>ASCEND</b>. Every transformation raises your damage, speed, max health and unlocks new techniques. You keep your form between fights.</p>
+          </div>
+          <div class="help-col wide">
+            <h3>TECHNIQUES</h3>
+            <div class="tech-grid">
+              <div class="tech"><span class="tg">☀</span><div><b>SOLAR FLARE</b><small>Blinding stun. Available from the start.</small></div></div>
+              <div class="tech"><span class="tg">瞬</span><div><b>INSTANT TRANSMISSION</b><small>Reposition behind the enemy; next hit crits.</small></div></div>
+              <div class="tech"><span class="tg">龍</span><div><b>DRAGON FIST</b><small>Unlocks at Super Saiyan. A dragon-backed rush.</small></div></div>
+              <div class="tech"><span class="tg">✦</span><div><b>SPIRIT BOMB</b><small>Unlocks at Super Saiyan 2. Needs full SPIRIT.</small></div></div>
+              <div class="tech"><span class="tg">波</span><div><b>KAMEHAMEHA</b><small>Hold BEAM to charge; release to fire.</small></div></div>
+              <div class="tech"><span class="tg">空</span><div><b>ULTRA INSTINCT</b><small>At -Sign- and above, you automatically evade some hits.</small></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="panel-actions"><button class="btn primary" data-close="help">GOT IT</button></div>
+      </div>
+    </section>
+
+    <section id="screen-pause" class="screen panel-screen hidden">
+      <div class="panel pause-panel">
+        <div class="panel-kicker">BATTLE PAUSED</div>
+        <h2>TAKE A <em>BREATH</em></h2>
+        <div class="pause-form" id="pause-form">BASE FORM</div>
+        <div class="panel-actions stacked">
+          <button id="btn-resume" class="btn primary">RESUME</button>
+          <button id="btn-pause-help" class="btn ghost">CONTROLS</button>
+          <button id="btn-quit" class="btn ghost danger">QUIT TO TITLE</button>
+        </div>
+        <p class="tiny">Tip: you can charge POWER while the enemy is recovering.</p>
+      </div>
+    </section>
+
+    <section id="screen-victory" class="screen panel-screen hidden">
+      <div class="panel result-panel victory-panel">
+        <div class="panel-kicker" id="victory-kicker">STAGE CLEAR</div>
+        <h2>VICTORY</h2>
+        <div class="result-sub" id="victory-sub">FRIEZA DEFEATED</div>
+        <div class="stats">
+          <div><span>DAMAGE DEALT</span><b id="victory-damage">0</b></div>
+          <div><span>BEST COMBO</span><b id="victory-combo">0</b></div>
+          <div><span>FIGHT TIME</span><b id="victory-time">0:00</b></div>
+          <div><span>FORM</span><b id="victory-form">BASE</b></div>
+        </div>
+        <div class="next-card" id="next-card">
+          <span>NEXT CHALLENGER</span>
+          <strong id="next-name">PERFECT CELL</strong>
+          <em id="next-title">THE PERFECT WARRIOR</em>
+        </div>
+        <div class="panel-actions stacked">
+          <button id="btn-next" class="btn primary">NEXT BATTLE</button>
+          <button id="btn-victory-quit" class="btn ghost">QUIT TO TITLE</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="screen-defeat" class="screen panel-screen hidden">
+      <div class="panel result-panel defeat-panel">
+        <div class="panel-kicker">YOUR KI HAS FADED</div>
+        <h2>DEFEATED</h2>
+        <div class="result-sub" id="defeat-sub">FRIEZA STANDS VICTORIOUS</div>
+        <p class="defeat-line">“Power is not given. It is taken.”</p>
+        <div class="stats">
+          <div><span>DAMAGE DEALT</span><b id="defeat-damage">0</b></div>
+          <div><span>BEST COMBO</span><b id="defeat-combo">0</b></div>
+          <div><span>REACHED</span><b id="defeat-stage">STAGE 1</b></div>
+          <div><span>FORM</span><b id="defeat-form">BASE</b></div>
+        </div>
+        <div class="panel-actions stacked">
+          <button id="btn-retry" class="btn primary">RETRY BATTLE</button>
+          <button id="btn-defeat-quit" class="btn ghost">QUIT TO TITLE</button>
+        </div>
+        <p class="tiny">Retry begins with the form you entered this battle with. Charge up early.</p>
+      </div>
+    </section>
+
+    <section id="screen-complete" class="screen panel-screen hidden">
+      <div class="panel result-panel complete-panel">
+        <div class="panel-kicker">THE MULTIVERSE IS SAFE</div>
+        <h2>UNIVERSE <em>SAVED</em></h2>
+        <div class="result-sub">JIREN HAS FALLEN · YOU ARE THE STRONGEST</div>
+        <div class="stats">
+          <div><span>TOTAL DAMAGE</span><b id="complete-damage">0</b></div>
+          <div><span>BEST COMBO</span><b id="complete-combo">0</b></div>
+          <div><span>RUN TIME</span><b id="complete-time">0:00</b></div>
+          <div><span>FINAL FORM</span><b id="complete-form">MUI</b></div>
+        </div>
+        <p class="complete-line">“I am the hope of the universe. I am the answer to all living things that cry out for peace.”</p>
+        <div class="panel-actions stacked">
+          <button id="btn-again" class="btn primary">PLAY AGAIN</button>
+          <button id="btn-complete-quit" class="btn ghost">TITLE SCREEN</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================== OVERLAYS ========================== -->
+    <div id="enemy-card" class="hidden" aria-hidden="true">
+      <div class="ec-line"></div>
+      <div class="ec-stage" id="ec-stage">STAGE 1 · THE TYRANT</div>
+      <div class="ec-name" id="ec-name">FRIEZA</div>
+      <div class="ec-title" id="ec-title">EMPEROR OF EVIL</div>
+      <div class="ec-quote" id="ec-quote">“...”</div>
+      <div class="ec-line"></div>
+    </div>
+
+    <div id="announce" aria-live="polite">
+      <div id="announce-main"></div>
+      <div id="announce-sub"></div>
+    </div>
+
+    <div id="toast" role="status"></div>
+  </div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
